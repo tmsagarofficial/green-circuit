@@ -17,22 +17,75 @@
       <h1 class="brand-title">GREENCIRCUIT</h1>
     </div>
 
-    <!-- CAMERA SCAN ICON -->
-    <div class="scan-section" onclick="startScanner()">
-      <p class="scan-label">SCAN QR</p>
-      <svg xmlns="http://www.w3.org/2000/svg" class="camera-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M3 7h2l1-2h12l1 2h2a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V9a2 2 0 012-2z"/>
-        <circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="2" fill="none"/>
-      </svg>
-      
+    <!-- Initial QR Scan View -->
+    <div id="scan-view">
+      <div class="scan-section" onclick="startScanner()">
+        <svg xmlns="http://www.w3.org/2000/svg" class="camera-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 7h2l1-2h12l1 2h2a2 2 0 012 2v10a2 2 0 01-2 2H3a2 2 0 01-2-2V9a2 2 0 012-2z"/>
+          <circle cx="12" cy="13" r="4" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>
+        <p class="scan-label">SCAN QR</p>
+      </div>
+
+      <div id="reader" class="qr-reader hidden"></div>
+
+      <div id="result-box" class="hidden">
+        <p class="label">QR Data:</p>
+        <p id="result">Loading participant data...</p>
+      </div>
     </div>
 
-    <div id="reader" class="qr-reader hidden"></div>
-
-    <div id="result-box">
-      <p class="label">QR Data:</p>
-      <p id="result">Tap the camera icon to start</p>
+    <!-- Participant Info View (initially hidden) -->
+    <div id="participant-info" class="hidden">
+      <div class="info-row">
+        <div class="info-label">NAME</div>
+        <div id="name-value" class="info-value"></div>
+      </div>
+      
+      <div class="info-row">
+        <div class="info-label">PH NO</div>
+        <div id="phone-value" class="info-value"></div>
+      </div>
+      
+      <div class="info-row">
+        <div class="info-label">EVENT</div>
+        <div id="event-value" class="info-value"></div>
+      </div>
+      
+      <div class="info-row">
+        <div class="info-label">CATEGORY</div>
+        <div id="category-value" class="info-value"></div>
+      </div>
+      
+      <div class="checkpoint-grid">
+        <div class="cp-container">
+          <div class="cp-label">CP-1</div>
+          <input type="checkbox" id="cp-1" class="cp-checkbox hidden">
+          <div id="cp-1-display" class="cp-display false">FALSE</div>
+        </div>
+        
+        <div class="cp-container">
+          <div class="cp-label">CP-2</div>
+          <input type="checkbox" id="cp-2" class="cp-checkbox hidden">
+          <div id="cp-2-display" class="cp-display false">FALSE</div>
+        </div>
+        
+        <div class="cp-container">
+          <div class="cp-label">CP-3</div>
+          <input type="checkbox" id="cp-3" class="cp-checkbox hidden">
+          <div id="cp-3-display" class="cp-display false">FALSE</div>
+        </div>
+        
+        <div class="cp-container">
+          <div class="cp-label">CP-4</div>
+          <input type="checkbox" id="cp-4" class="cp-checkbox hidden">
+          <div id="cp-4-display" class="cp-display false">FALSE</div>
+        </div>
+      </div>
+      
+      <button id="update-btn" class="update-btn">UPDATE</button>
+      <button id="scan-again-btn" class="scan-again-btn" onclick="location.reload()">SCAN AGAIN</button>
     </div>
 
     <div class="footer">
@@ -40,6 +93,9 @@
     </div>
   </div>
 
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
   <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
