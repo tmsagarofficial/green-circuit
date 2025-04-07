@@ -16,6 +16,92 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
+// Create an audio context for the sound effects
+let audioContext = null;
+
+// Play barcode scanner sound (cooler with more dynamic frequencies)
+function playBarcodeScanSound() {
+  try {
+    // Initialize audio context if not already done
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Set the oscillator to a square wave for a more "beep"-like sound
+    oscillator.type = 'square';
+    gainNode.gain.value = 0.4; // Slightly quieter to make it less harsh
+    
+    oscillator.start();
+    
+    // Start with a high frequency and gradually lower it in a more sweeping motion
+    oscillator.frequency.setValueAtTime(2000, audioContext.currentTime); // Initial high frequency
+    oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.15); // Sweep down in a cool way
+    
+    // Add a quick rise and fall in frequency for a scanner-like rhythm
+    setTimeout(() => {
+      oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2); // Slight rise
+      oscillator.frequency.exponentialRampToValueAtTime(1800, audioContext.currentTime + 0.3); // Then rise again
+    }, 100);
+    
+    // Stop after a very short time to mimic the beep of a scanner
+    setTimeout(() => {
+      oscillator.stop();
+    }, 350);
+  } catch (error) {
+    console.error("Error playing scan sound:", error);
+  }
+}
+
+// Play success sound (two-tone with smoother transitions and harmonic richness)
+function playSuccessSound() {
+  try {
+    // Initialize audio context if not already done
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    
+    const oscillator1 = audioContext.createOscillator();
+    const oscillator2 = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator1.connect(gainNode);
+    oscillator2.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    // Set oscillator properties for richer sound
+    oscillator1.type = 'sine';
+    oscillator2.type = 'sine';
+    gainNode.gain.value = 0.4; // Slightly softer volume for smoother sound
+    
+    // Success sound: start with two different frequencies to add harmonic depth
+    oscillator1.frequency.value = 1200;
+    oscillator2.frequency.value = 1600; // Higher note for harmonic richness
+    oscillator1.start();
+    oscillator2.start();
+    
+    // Create a smooth fade from one frequency to another
+    setTimeout(() => {
+      oscillator1.frequency.exponentialRampToValueAtTime(1500, audioContext.currentTime + 0.15); // Raise 1st oscillator
+      oscillator2.frequency.exponentialRampToValueAtTime(1900, audioContext.currentTime + 0.15); // Raise 2nd oscillator
+    }, 100);
+    
+    // Stop the oscillators after both notes have been played
+    setTimeout(() => {
+      oscillator1.stop();
+      oscillator2.stop();
+    }, 300);
+  } catch (error) {
+    console.error("Error playing success sound:", error);
+  }
+}
+
+
 function showToast(message) {
   const toast = document.getElementById('toast');
   toast.innerText = message;
@@ -39,7 +125,15 @@ function startScanner() {
     { facingMode: "environment" },
     { fps: 10, qrbox: { width: 250, height: 250 } },
     qrCodeMessage => {
-      showToast("QR detected. Fetching data...");
+      // Play barcode scanner sound
+      playBarcodeScanSound();
+      
+      // Vibrate device if supported
+      if (navigator.vibrate) {
+        navigator.vibrate(300);
+      }
+      
+      showToast("QR detected.");
       scanner.stop(); // stop after 1 read
       
       // Fetch participant data using the QR code
@@ -54,9 +148,8 @@ function startScanner() {
 }
 
 function fetchParticipantData(participantId) {
-  // Hide scan view and show participant info
+  // Hide scan view
   document.getElementById("scan-view").classList.add("hidden");
-  document.getElementById("participant-info").classList.remove("hidden");
   
   currentParticipantId = participantId;
   
@@ -67,6 +160,9 @@ function fetchParticipantData(participantId) {
     .then((snapshot) => {
       const data = snapshot.val();
       if (data) {
+        // Show participant info section
+        document.getElementById("participant-info").classList.remove("hidden");
+        
         // Populate the participant info on the page
         document.getElementById("name-value").innerText = data.Name || "-";
         document.getElementById("phone-value").innerText = data.PH_NO || data["PH NO"] || "-"; // Try both field formats
@@ -84,11 +180,27 @@ function fetchParticipantData(participantId) {
         
         showToast("Data loaded");
       } else {
+        // Keep participant info hidden
+        document.getElementById("participant-info").classList.add("hidden");
         showToast("Participant not found");
+        
+        // Show not found message or return to scan
+        setTimeout(() => {
+          document.getElementById("scan-view").classList.remove("hidden");
+          startScanner(); // Restart scanner
+        }, 2000);
       }
     })
     .catch(error => {
+      // Keep participant info hidden
+      document.getElementById("participant-info").classList.add("hidden");
       showToast("Database error: " + error.message);
+      
+      // Return to scan view after error
+      setTimeout(() => {
+        document.getElementById("scan-view").classList.remove("hidden");
+        startScanner(); // Restart scanner
+      }, 2000);
     });
 }
 
@@ -133,12 +245,27 @@ function updateCheckpoints() {
   // Update the database
   database.ref().update(updates)
     .then(() => {
+      // Play success sound when update completes
+      playSuccessSound();
+      
+      // Vibrate with different pattern to indicate success
+      if (navigator.vibrate) {
+        navigator.vibrate([100, 50, 100]);
+      }
+      
       showToast("Update successful");
       updateCpDisplay();
     })
     .catch((error) => {
       showToast("Update failed: " + error.message);
     });
+}
+
+function resetAndScanAgain() {
+  currentParticipantId = null;
+  document.getElementById("participant-info").classList.add("hidden");
+  document.getElementById("scan-view").classList.remove("hidden");
+  startScanner();
 }
 
 // Make CP displays clickable to toggle the checkbox
@@ -158,5 +285,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const updateBtn = document.getElementById("update-btn");
   if (updateBtn) {
     updateBtn.addEventListener("click", updateCheckpoints);
+  }
+  
+  // Add event listener for scan again button if you have one
+  const scanAgainBtn = document.getElementById("scan-again-btn");
+  if (scanAgainBtn) {
+    scanAgainBtn.addEventListener("click", resetAndScanAgain);
   }
 });
